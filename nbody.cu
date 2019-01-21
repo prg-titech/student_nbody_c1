@@ -25,18 +25,42 @@ __device__ Body* dev_bodies;
 
 __device__ Body::Body(float pos_x, float pos_y,
                       float vel_x, float vel_y, float mass) {
-  /* TODO */
+                        pos_x_ = pos_x;
+                        pos_y_ = pos_y;
+                        vel_x_ = vel_x;
+                        vel_y_ = vel_y;
+                        mass_ = mass;
+                        force_x_ = 0;
+                        force_y_ = 0;
 }
 
 
 __device__ void Body::compute_force() {
-  /* TODO */
+  force_x_ = 0;
+  force_y_ = 0;
+  for (int i = 0; i < kNumBodies; ++i){
+    if(this != (dev_bodies + i)){
+      float m1 = dev_bodies[i].mass_;
+      float x1 = dev_bodies[i].pos_x_;
+      float y1 = dev_bodies[i].pos_y_;
+      force_x_ += kGravityConstant * m1 * mass_ / pow((pow((x1 - pos_x_), 2) + pow((y1 - pos_y_), 2)),3/2) * (x1 - pos_x_);
+      force_y_ += kGravityConstant * m1 * mass_ / pow((pow((x1 - pos_x_), 2) + pow((y1 - pos_y_), 2)),3/2) * (y1 - pos_y_);
+    }
+  }
 }
 
 
 __device__ void Body::update(float dt) {
-  /* TODO */
-
+  vel_x_ += force_x_ / mass_ * dt;
+  vel_y_ += force_y_ / mass_ * dt;
+  pos_x_ += vel_x_ * dt;
+  pos_y_ += vel_y_ * dt;
+  if (abs(pos_x_) > 1) {
+    vel_x_ = - vel_x_;
+  }
+  if (abs(pos_y_) > 1) {
+    vel_y_ = - vel_y_;
+  }
   // Bodies should bounce off the wall when they go out of range.
   // Range: [-1, -1] to [1, 1]
 }
@@ -71,7 +95,10 @@ __global__ void kernel_compute_force() {
 
 
 __global__ void kernel_update() {
-  /* TODO */
+  for (int i = threadIdx.x + blockDim.x * blockIdx.x;
+       i < kNumBodies; i += blockDim.x * gridDim.x) {
+    dev_bodies[i].update();
+  }
 }
 
 
@@ -99,7 +126,7 @@ void run_interactive() {
     step_simulation();
   } while (draw(host_bodies));
 
-  close_renderer();  
+  close_renderer();
 }
 
 void run_benchmark() {
@@ -143,4 +170,3 @@ int main(int argc, char** argv) {
   cudaFree(host_bodies);
   return 0;
 }
-
