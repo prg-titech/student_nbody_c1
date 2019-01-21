@@ -86,7 +86,7 @@ __global__ void kernel_initialize_bodies(Body* bodies) {
 }
 
 
-__global__ void kernel_compute_force(float dt) {
+__global__ void kernel_compute_force() {
   for (int i = threadIdx.x + blockDim.x * blockIdx.x;
        i < kNumBodies; i += blockDim.x * gridDim.x) {
     dev_bodies[i].compute_force();
@@ -97,7 +97,7 @@ __global__ void kernel_compute_force(float dt) {
 __global__ void kernel_update() {
   for (int i = threadIdx.x + blockDim.x * blockIdx.x;
        i < kNumBodies; i += blockDim.x * gridDim.x) {
-    dev_bodies[i].update();
+    dev_bodies[i].update(kTimeInterval);
   }
 }
 
