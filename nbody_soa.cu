@@ -1,3 +1,6 @@
+
+
+
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -29,12 +32,42 @@ float* host_Body_force_y;
 
 __device__ void new_Body(int id, float pos_x, float pos_y,
                          float vel_x, float vel_y, float mass) {
-  /* TODO */
+  dev_Body_pos_x[id] = pos_x;
+  dev_Body_pos_y[id] = pos_y;
+  dev_Body_vel_x[id] = vel_x;
+  dev_Body_vel_y[id] = vel_y;
+  dev_Body_mass[id] = mass;
+  dev_Body_force_x[id] = 0;
+  dev_Body_force_y[id] = 0;
 }
 
 
-/* TODO */
+__device__ void compute_force(int id) {
+  dev_Body_force_x[id] = 0;
+  dev_Body_force_y[id] = 0;
+  for (int i = 0; i < kNumBodies; ++i){
+    if(id != i){
+      float m1 = dev_bodies_mass[i];
+      float x1 = dev_bodies_pos_x[i];
+      float y1 = dev_bodies_pos_y[i];
+      dev_Body_force_x[id] += kGravityConstant * m1 * dev_Body_mass[id] / pow((pow((x1 - dev_Body_pos_x[id]), 2) + pow((y1 - dev_Body_pos_y[id]), 2)),3/2) * (x1 - dev_Body_pos_x[id]);
+      dev_Body_force_y[id] += kGravityConstant * m1 * dev_Body_mass[id] / pow((pow((x1 - dev_Body_pos_x[id]), 2) + pow((y1 - dev_Body_pos_y[id]), 2)),3/2) * (y1 - dev_Body_pos_y[id]);
+    }
+  }
+}
 
+__device__ void update(float dt, int id) {
+  dev_Body_vel_x[id] += dev_Body_force_x[id] / dev_Body_mass[id] * dt;
+  dev_Body_vel_y[id] += dev_Body_force_y[id] / dev_Body_mass[id] * dt;
+  dev_Body_pos_x[id] += dev_Body_vel_x[id] * dt;
+  dev_Body_pos_y[id] += dev_Body_vel_y[id] * dt;
+  if (abs(dev_Body_pos_x[id]) > 1) {
+    dev_Body_vel_x[id] = - dev_Body_vel_x[id];
+  }
+  if (abs(dev_Body_pos_y[id]) > 1) {
+    dev_Body_vel_y[id] = - dev_Body_vel_y[id];
+  }
+}
 
 int Body_checksum(int id) {
   return host_Body_pos_x[id]*1000 + host_Body_pos_y[id]*2000
@@ -72,12 +105,18 @@ __global__ void kernel_initialize_bodies(float* pos_x, float* pos_y,
 
 
 __global__ void kernel_compute_force() {
-  /* TODO */
+  for (int i = threadIdx.x + blockDim.x * blockIdx.x;
+       i < kNumBodies; i += blockDim.x * gridDim.x) {
+        compute_force(i);
+  }
 }
 
 
 __global__ void kernel_update() {
-  /* TODO */
+  for (int i = threadIdx.x + blockDim.x * blockIdx.x;
+       i < kNumBodies; i += blockDim.x * gridDim.x) {
+        update(kTimeInterval, i);
+  }
 }
 
 
@@ -106,7 +145,9 @@ void run_benchmark() {
   printf("Time: %lu ms\n", millis);
 }
 
-int checksum() {
+
+
+
   int result = 0;
 
   for (int i = 0; i < kNumBodies; ++i) {
@@ -159,4 +200,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-
