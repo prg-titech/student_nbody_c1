@@ -148,7 +148,7 @@ void run_benchmark() {
 }
 
 
-
+int checksum() {
 
   int result = 0;
 
