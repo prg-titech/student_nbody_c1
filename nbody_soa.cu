@@ -47,11 +47,13 @@ __device__ void compute_force(int id) {
   dev_Body_force_y[id] = 0;
   for (int i = 0; i < kNumBodies; ++i){
     if(id != i){
-      float m1 = dev_bodies_mass[i];
-      float x1 = dev_bodies_pos_x[i];
-      float y1 = dev_bodies_pos_y[i];
-      dev_Body_force_x[id] += kGravityConstant * m1 * dev_Body_mass[id] / pow((pow((x1 - dev_Body_pos_x[id]), 2) + pow((y1 - dev_Body_pos_y[id]), 2)),3/2) * (x1 - dev_Body_pos_x[id]);
-      dev_Body_force_y[id] += kGravityConstant * m1 * dev_Body_mass[id] / pow((pow((x1 - dev_Body_pos_x[id]), 2) + pow((y1 - dev_Body_pos_y[id]), 2)),3/2) * (y1 - dev_Body_pos_y[id]);
+      float m1 = dev_Body_mass[id];
+      float m2 = dev_Body_mass[i];
+      float dx = dev_Body_pos_x[i] - dev_Body_pos_x[id];
+      float dy = dev_Body_pos_y[i] - dev_Body_pos_y[id];
+      float r = sqrt(dx * dx + dy * dy);
+      dev_Body_force_x[id] += kGravityConstant * m1 * m2 / (r * r * r) * dx;
+      dev_Body_force_y[id] += kGravityConstant * m1 * m2 / (r * r * r) * dy;
     }
   }
 }

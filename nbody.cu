@@ -34,10 +34,11 @@ __device__ void Body::compute_force() {
   for (int i = 0; i < kNumBodies; ++i){
     if(this != (dev_bodies + i)){
       float m1 = dev_bodies[i].mass_;
-      float x1 = dev_bodies[i].pos_x_;
-      float y1 = dev_bodies[i].pos_y_;
-      force_x_ += kGravityConstant * m1 * mass_ / pow((pow((x1 - pos_x_), 2) + pow((y1 - pos_y_), 2)),3/2) * (x1 - pos_x_);
-      force_y_ += kGravityConstant * m1 * mass_ / pow((pow((x1 - pos_x_), 2) + pow((y1 - pos_y_), 2)),3/2) * (y1 - pos_y_);
+      float dx = dev_bodies[i].pos_x_ - pos_x_;
+      float dy = dev_bodies[i].pos_y_ - pos_y_;
+      float r = sqrt(dx * dx + dy * dy);
+      force_x_ += kGravityConstant * m1 * mass_ / (r * r * r) * dx;
+      force_y_ += kGravityConstant * m1 * mass_ / (r * r * r) * dy;
     }
   }
 }
